@@ -121,10 +121,15 @@ class Rank < SortableSymbol
 end
 
 class Suit < SortableSymbol
-  @@suit_info = { :clubs    => SortableSymbolInfo.new( 0, 2, "\005"),# 'C'),
-                  :diamonds => SortableSymbolInfo.new( 1, 3, "\004"),# 'D'),
-                  :hearts   => SortableSymbolInfo.new( 2, 1, "\003"),# 'H'),
-                  :spades   => SortableSymbolInfo.new( 3, 0, "\006")}# 'S') }
+  CLUB    = "\005"
+  DIAMOND = "\004"
+  HEART   = "\003"
+  SPADE   = "\006"
+
+  @@suit_info = { :clubs    => SortableSymbolInfo.new( 0, 2, CLUB),
+                  :diamonds => SortableSymbolInfo.new( 1, 3, DIAMOND),
+                  :hearts   => SortableSymbolInfo.new( 2, 1, HEART),
+                  :spades   => SortableSymbolInfo.new( 3, 0, SPADE)}
   def get_info
     @@suit_info
   end
