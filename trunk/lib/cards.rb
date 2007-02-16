@@ -21,123 +21,131 @@
 # SOFTWARE.
 #
 
-class SortableSymbolInfo
+class SymbolInfo
   attr_reader :display_str
+  attr_reader :ordinal_array
 
-  @@use_display_ord = true
-
-  def SortableSymbolInfo.use_display_ord=(value)
-    @@use_display_ord = value
-  end
-
-  def ordinal
-    if @@use_display_ord
-      @display_ord
-    else
-      @value_ord
-    end
-  end
-
-  def initialize(value_ord, display_ord, display_str)
-    @value_ord = value_ord
-    @display_ord = display_ord 
+  def initialize(ordinal_array, display_str)
+    @ordinal_array = ordinal_array
     @display_str = display_str 
   end
 end
 
-class SortableSymbol
+class SymbolError < StandardError
+end
+
+class GenericSymbol
   include Comparable
 
-  def SortableSymbol.use_display_ord=(value)
-    SortableSymbolInfo.use_display_ord = value
-  end
+  # Class definitions
 
-  def get_info
-    # Derived classes must override this function
-    raise NoMethodError
-  end
+  class << self
 
-  def new_instance(symbol)
-    # Derived classes must override this function
-    raise NoMethodError
-  end
+    attr_reader :symbol_info
+    attr_reader :ordering
+    attr_reader :ordered_info
 
-  def initialize(symbol = nil)
-    @first_symbol = get_info.index(
-      get_info.values.detect { |obj| obj.ordinal == 0 } )
-    if symbol
-      raise ArgumentError.new("illegal symbol") unless get_info[symbol]
-      @symbol = symbol
-    else
-      @symbol = @first_symbol
+    def order_valid?(order)
+      @symbol_info and order >= 0 and
+        order < @symbol_info.values[0].ordinal_array.length
+    end
+
+    def ordering=(order)
+      if order_valid?(order)
+        @ordering = order
+        @ordered_info = @symbol_info.values.sort { |a,b|
+          a.ordinal_array[order] <=> b.ordinal_array[order] }
+      else
+        raise ArgumentError.new("ordering does not exist: #{order}")
+      end
+    end
+
+    def first
+      raise SymbolError.new("ordering not specified") unless @ordering
+      new(@symbol_info.index(@ordered_info[0]))
+    end
+
+    def last
+      raise SymbolError.new("ordering not specified") unless @ordering
+      new(@symbol_info.index(@ordered_info[-1]))
+    end
+
+    def gen_all
+      (first..last).each do |sym|
+        yield sym
+      end
     end
   end
 
+  # Object definitions
+
+  def initialize(symbol)
+    raise ArgumentError.new("illegal symbol") unless
+      self.class.symbol_info[symbol]
+    @symbol = symbol
+  end
+
   def to_s
-    get_info[@symbol].display_str
+    self.class.symbol_info[@symbol].display_str
   end
 
   def <=>(other)
-    get_info[@symbol].ordinal <=> get_info[other.symbol].ordinal
+    self.class.symbol_info[@symbol].ordinal_array[self.class.ordering] <=>
+      self.class.symbol_info[other.symbol].ordinal_array[self.class.ordering]
   end
 
   def succ
-    succ_symbol = get_info.index(
-      get_info.values.detect do |obj|
-        obj.ordinal == get_info[@symbol].ordinal + 1
-      end)
-    new_instance(succ_symbol) if succ_symbol
-  end
-
-  def first
-    new_instance(@first_symbol) if @first_symbol
+    self.class.ordered_info.each_with_index do |obj, i|
+      if obj == self.class.symbol_info[@symbol]
+        if self.class.ordered_info[i+1]
+          return self.class.new(
+            self.class.symbol_info.index(self.class.ordered_info[i+1]))
+        else
+          return nil
+        end
+      end
+    end
   end
 
   protected
     attr_reader :symbol
 end
 
-class Rank < SortableSymbol
-  @@rank_info = { :two   => SortableSymbolInfo.new( 0, 12, '2'),
-                  :three => SortableSymbolInfo.new( 1, 11, '3'),
-                  :four  => SortableSymbolInfo.new( 2, 10, '4'),
-                  :five  => SortableSymbolInfo.new( 3,  9, '5'),
-                  :six   => SortableSymbolInfo.new( 4,  8, '6'),
-                  :seven => SortableSymbolInfo.new( 5,  7, '7'),
-                  :eight => SortableSymbolInfo.new( 6,  6, '8'),
-                  :nine  => SortableSymbolInfo.new( 7,  5, '9'),
-                  :ten   => SortableSymbolInfo.new( 8,  4, '10'),
-                  :jack  => SortableSymbolInfo.new( 9,  3, 'J'),
-                  :queen => SortableSymbolInfo.new(10,  2, 'Q'),
-                  :king  => SortableSymbolInfo.new(11,  1, 'K'),
-                  :ace   => SortableSymbolInfo.new(12,  0, 'A') }
-  def get_info
-    @@rank_info
-  end
+class Rank < GenericSymbol
+  VALUE = 0
+  DISPLAY = 1
 
-  def new_instance(symbol)
-    Rank.new(symbol)
-  end
+  @symbol_info = { :two   => SymbolInfo.new([ 0, 12], '2'),
+                   :three => SymbolInfo.new([ 1, 11], '3'),
+                   :four  => SymbolInfo.new([ 2, 10], '4'),
+                   :five  => SymbolInfo.new([ 3,  9], '5'),
+                   :six   => SymbolInfo.new([ 4,  8], '6'),
+                   :seven => SymbolInfo.new([ 5,  7], '7'),
+                   :eight => SymbolInfo.new([ 6,  6], '8'),
+                   :nine  => SymbolInfo.new([ 7,  5], '9'),
+                   :ten   => SymbolInfo.new([ 8,  4], '10'),
+                   :jack  => SymbolInfo.new([ 9,  3], 'J'),
+                   :queen => SymbolInfo.new([10,  2], 'Q'),
+                   :king  => SymbolInfo.new([11,  1], 'K'),
+                   :ace   => SymbolInfo.new([12,  0], 'A') }
 end
 
-class Suit < SortableSymbol
+class Suit < GenericSymbol
+  VALUE = 0
+  DISPLAY = 1
+
   CLUB    = "\005"
   DIAMOND = "\004"
   HEART   = "\003"
   SPADE   = "\006"
 
-  @@suit_info = { :clubs    => SortableSymbolInfo.new( 0, 2, CLUB),
-                  :diamonds => SortableSymbolInfo.new( 1, 3, DIAMOND),
-                  :hearts   => SortableSymbolInfo.new( 2, 1, HEART),
-                  :spades   => SortableSymbolInfo.new( 3, 0, SPADE)}
-  def get_info
-    @@suit_info
-  end
-
-  def new_instance(symbol)
-    Suit.new(symbol)
-  end
+  @symbol_info = { :clubs    => SymbolInfo.new([0, 2], CLUB),
+                   :diamonds => SymbolInfo.new([1, 3], DIAMOND),
+                   :hearts   => SymbolInfo.new([2, 1], HEART),
+                   :spades   => SymbolInfo.new([3, 0], SPADE)}
 end
+
+__END__
 
 class Card
   include Comparable

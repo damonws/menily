@@ -26,106 +26,138 @@ $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 require 'test/unit'
 require 'cards'
 
-class TcSortableSymbol < Test::Unit::TestCase
-  # Only derived classes of SortableSymbol can be instantiated
-  def test_instantiation
-    assert_raise(NoMethodError) { SortableSymbol.new() }
+class TcGenericSymbol < Test::Unit::TestCase
+
+  ORD = [ 'ABC', 'BCA' ]
+  
+  class TestSymbol < GenericSymbol
+    @symbol_info = { :a => SymbolInfo.new([ 5, 7], 'A'),
+                     :b => SymbolInfo.new([10, 1], 'B'),
+                     :c => SymbolInfo.new([20, 3], 'C') }
+  end
+
+  def test_order_validation
+    assert_equal(true, TestSymbol.order_valid?(ORD.length - 1))
+    assert_equal(false, TestSymbol.order_valid?(ORD.length))
+  end
+
+  def test_ordering
+    (0...ORD.length).each do |order|
+      TestSymbol.ordering = order
+      assert_equal(order, TestSymbol.ordering)
+    end
+    assert_raise(ArgumentError) { TestSymbol.ordering = ORD.length }
+  end
+
+  def test_first
+    (0...ORD.length).each do |order|
+      TestSymbol.ordering = order
+      assert_equal(ORD[order][0,1], TestSymbol.first.to_s)
+    end
+  end
+
+  def test_last
+    (0...ORD.length).each do |order|
+      TestSymbol.ordering = order
+      assert_equal(ORD[order][-1,1], TestSymbol.last.to_s)
+    end
+  end
+
+  def test_spaceship
+    (0...ORD.length).each do |order|
+      TestSymbol.ordering = order
+      assert(TestSymbol.first < TestSymbol.last)
+    end
+    TestSymbol.ordering = 0
+    assert(TestSymbol.new(:a) < TestSymbol.new(:b))
+    TestSymbol.ordering = 1
+    assert(TestSymbol.new(:a) > TestSymbol.new(:b))
+  end
+
+  def test_succ
+    (0...ORD.length).each do |order|
+      TestSymbol.ordering = order
+      assert_nil(TestSymbol.last.succ)
+      assert_equal(ORD[order][1,1], TestSymbol.first.succ.to_s)
+      assert_equal(ORD[order][2,1], TestSymbol.first.succ.succ.to_s)
+    end
+  end
+
+  def test_gen_all
+    (0...ORD.length).each do |order|
+      TestSymbol.ordering = order
+      sym_str = ''
+      TestSymbol.gen_all { |sym| sym_str += sym.to_s }
+      assert_equal(ORD[order], sym_str)
+    end
   end
 end
 
 class TcRank < Test::Unit::TestCase
   def test_instantiation
-    assert_nothing_raised       { Rank.new() }
+    assert_raise(ArgumentError) { Rank.new() }
     assert_nothing_raised       { Rank.new(:seven) }
     assert_raise(ArgumentError) { Rank.new(:eleven) }
   end
 
-  def test_range_display
-    SortableSymbol.use_display_ord = true
-    str = ''
-    (Rank.new(:ace)..Rank.new(:two)).each do |x|
-      str += x.to_s
-    end
-    assert_equal('AKQJ1098765432', str)
-  end
-
-  def test_range_internal
-    SortableSymbol.use_display_ord = false
-    str = ''
-    (Rank.new(:two)..Rank.new(:ace)).each do |x|
-      str += x.to_s
-    end
-    assert_equal('2345678910JQKA', str)
-  end
-
-  def test_succ
-    SortableSymbol.use_display_ord = true
-    assert_equal(Rank.new(:three).succ, Rank.new(:two))
-    assert_nil(Rank.new(:two).succ)
-    SortableSymbol.use_display_ord = false
-    assert_equal(Rank.new(:three).succ, Rank.new(:four))
-    assert_nil(Rank.new(:ace).succ)
-  end
-
-  def test_first
-    SortableSymbol.use_display_ord = true
-    assert_equal(Rank.new(:eight).first, Rank.new(:ace))
-    SortableSymbol.use_display_ord = false
-    assert_equal(Rank.new(:eight).first, Rank.new(:two))
-  end
-
-  def test_spaceship
-    SortableSymbol.use_display_ord = true
-    assert(Rank.new(:jack) < Rank.new(:four))
-    SortableSymbol.use_display_ord = false
-    assert(Rank.new(:jack) > Rank.new(:four))
+  def test_get_all
+    Rank.ordering = Rank::VALUE
+    ranks = ''
+    Rank.gen_all { |rank| ranks += rank.to_s }
+    assert_equal('2345678910JQKA', ranks)
+    Rank.ordering = Rank::DISPLAY
+    ranks = ''
+    Rank.gen_all { |rank| ranks += rank.to_s }
+    assert_equal('AKQJ1098765432', ranks)
   end
 end
 
 class TcSuit < Test::Unit::TestCase
   def test_instantiation
-    assert_nothing_raised       { Suit.new() }
-    assert_nothing_raised       { Suit.new(:spades) }
+    assert_raise(ArgumentError) { Suit.new() }
+    assert_nothing_raised       { Suit.new(:diamonds) }
     assert_raise(ArgumentError) { Suit.new(:swords) }
   end
 
-  def test_range_display
-    SortableSymbol.use_display_ord = true
-    str = ''
-    (Suit.new(:spades)..Suit.new(:diamonds)).each { |x| str += x.to_s }
-    assert_equal(Suit::SPADE + Suit::HEART + Suit::CLUB + Suit::DIAMOND, str)
+  def test_get_all
+    Suit.ordering = Suit::VALUE
+    suits = ''
+    Suit.gen_all { |suit| suits += suit.to_s }
+    assert_equal("#{Suit::CLUB}#{Suit::DIAMOND}#{Suit::HEART}#{Suit::SPADE}",
+                 suits)
+    Suit.ordering = Suit::DISPLAY
+    suits = ''
+    Suit.gen_all { |suit| suits += suit.to_s }
+    assert_equal("#{Suit::SPADE}#{Suit::HEART}#{Suit::CLUB}#{Suit::DIAMOND}",
+                 suits)
   end
 
-  def test_range_internal
-    SortableSymbol.use_display_ord = false
-    str = ''
-    (Suit.new(:clubs)..Suit.new(:spades)).each { |x| str += x.to_s }
-    assert_equal(Suit::CLUB + Suit::DIAMOND + Suit::HEART + Suit::SPADE, str)
-  end
+end
 
-  def test_succ
-    SortableSymbol.use_display_ord = true
-    assert_equal(Suit.new(:hearts).succ, Suit.new(:clubs))
-    assert_nil(Suit.new(:diamonds).succ)
-    SortableSymbol.use_display_ord = false
-    assert_equal(Suit.new(:diamonds).succ, Suit.new(:hearts))
-    assert_nil(Suit.new(:spades).succ)
-  end
-
-  def test_first
-    SortableSymbol.use_display_ord = true
-    assert_equal(Suit.new(:hearts).first, Suit.new(:spades))
-    SortableSymbol.use_display_ord = false
-    assert_equal(Suit.new(:hearts).first, Suit.new(:clubs))
-  end
-
-  def test_spaceship
-    SortableSymbol.use_display_ord = true
-    assert(Suit.new(:hearts) < Suit.new(:diamonds))
-    SortableSymbol.use_display_ord = false
-    assert(Suit.new(:hearts) > Suit.new(:diamonds))
+class TcRankAndSuit < Test::Unit::TestCase
+  def test_independent_ordering
+    Rank.ordering = Rank::VALUE
+    Suit.ordering = Suit::DISPLAY
+    ranks = ''
+    suits = ''
+    Rank.gen_all { |rank| ranks += rank.to_s }
+    Suit.gen_all { |suit| suits += suit.to_s }
+    assert_equal('2345678910JQKA', ranks)
+    assert_equal("#{Suit::SPADE}#{Suit::HEART}#{Suit::CLUB}#{Suit::DIAMOND}",
+                 suits)
+    Rank.ordering = Rank::DISPLAY
+    Suit.ordering = Suit::VALUE
+    ranks = ''
+    suits = ''
+    Rank.gen_all { |rank| ranks += rank.to_s }
+    Suit.gen_all { |suit| suits += suit.to_s }
+    assert_equal('AKQJ1098765432', ranks)
+    assert_equal("#{Suit::CLUB}#{Suit::DIAMOND}#{Suit::HEART}#{Suit::SPADE}",
+                 suits)
   end
 end
+
+__END__
 
 class TcCard < Test::Unit::TestCase
   def test_instantiation
