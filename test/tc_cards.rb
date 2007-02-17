@@ -157,13 +157,84 @@ class TcRankAndSuit < Test::Unit::TestCase
   end
 end
 
-__END__
-
 class TcCard < Test::Unit::TestCase
+
+  ORD = [Card::VALUE, Card::DISPLAY]
+  FIRSTCARD = ["2#{Suit::CLUB}", "A#{Suit::SPADE}"]
+  LASTCARD = ["A#{Suit::SPADE}", "2#{Suit::DIAMOND}"]
+  CARDSUCC = [[[:ace, :clubs,    "2#{Suit::DIAMOND}", "3#{Suit::DIAMOND}"],
+               [:ace, :diamonds, "2#{Suit::HEART}"  , "3#{Suit::HEART}"  ],
+               [:king, :hearts,  "A#{Suit::HEART}"  , "2#{Suit::SPADE}"  ]],
+              [[:two, :spades,   "A#{Suit::HEART}"  , "K#{Suit::HEART}"  ],
+               [:three, :hearts, "2#{Suit::HEART}"  , "A#{Suit::CLUB}"   ],
+               [:two, :clubs,    "A#{Suit::DIAMOND}", "K#{Suit::DIAMOND}"]]]
+
   def test_instantiation
-    assert_nothing_raised { Card.new(Rank.new(:seven), Suit.new(:diamonds)) }
+    card_str = "5#{Suit::HEART}"
+    assert_equal(card_str, Card.new(:five, :hearts).to_s)
+    assert_equal(card_str, Card.new(Rank.new(:five), :hearts).to_s)
+    assert_equal(card_str, Card.new(Rank.new(:five), Suit.new(:hearts)).to_s)
+    assert_equal(card_str, Card.new(:five, Suit.new(:hearts)).to_s)
+    assert_raise(ArgumentError) { Card.new(5, :hearts) }
+    assert_raise(ArgumentError) { Card.new(:five, 'H') }
+    assert_raise(ArgumentError) { Card.new(:five, :swords) }
+    assert_raise(ArgumentError) { Card.new(:eleven, :hearts) }
   end
 
+  def test_order_validation
+    (0...ORD.length).each do |order|
+      assert_equal(true, Card.order_valid?(order))
+    end
+    assert_equal(false, Card.order_valid?(ORD.length))
+  end
+
+  def test_ordering
+    (0...ORD.length).each do |order|
+      Card.ordering = order
+      assert_equal(order, Card.ordering)
+    end
+    assert_raise(ArgumentError) { Card.ordering = ORD.length }
+  end
+
+  def test_first
+    (0...ORD.length).each do |order|
+      Card.ordering = order
+      assert_equal(FIRSTCARD[order], Card.first.to_s)
+    end
+  end
+
+  def test_last
+    (0...ORD.length).each do |order|
+      Card.ordering = order
+      assert_equal(LASTCARD[order], Card.last.to_s)
+    end
+  end
+
+  def test_spaceship
+    (0...ORD.length).each do |order|
+      Card.ordering = order
+      assert(Card.first < Card.last)
+    end
+    Card.ordering = 0
+    assert(Card.new(:king, :spades) > Card.new(:ace, :hearts))
+    assert(Card.new(:king, :clubs) < Card.new(:ace, :diamonds))
+    Card.ordering = 1
+    assert(Card.new(:king, :spades) < Card.new(:ace, :hearts))
+    assert(Card.new(:king, :clubs) < Card.new(:ace, :diamonds))
+  end
+
+  def test_succ
+    (0...ORD.length).each do |order|
+      Card.ordering = order
+      assert_nil(Card.last.succ)
+      for rank, suit, str1, str2 in CARDSUCC[order]
+        assert_equal(str1, Card.new(rank, suit).succ.to_s)
+        assert_equal(str2, Card.new(rank, suit).succ.succ.to_s)
+      end
+    end
+  end
+
+=begin
   def test_range_display
     SortableSymbol.use_display_ord = true
     range_str = ''
@@ -179,6 +250,28 @@ class TcCard < Test::Unit::TestCase
     end
     assert_equal(range_str, compare_str)
   end
+
+  def test_gen_all
+    (0...ORD.length).each do |order|
+      TestSymbol.ordering = order
+      sym_str = ''
+      TestSymbol.gen_all { |sym| sym_str += sym.to_s }
+      assert_equal(ORD[order], sym_str)
+    end
+  end
+
+  def test_attr
+    assert_equal(Card.new(Rank.new(:four), Suit.new(:clubs)).suit,
+                 Suit.new(:clubs))
+    assert_equal(Card.new(Rank.new(:two), Suit.new(:clubs)).rank,
+                 Rank.new(:two))
+  end
+=end
+end
+
+__END__
+
+class TcCard < Test::Unit::TestCase
 
   def test_range_internal
     SortableSymbol.use_display_ord = false
@@ -196,48 +289,7 @@ class TcCard < Test::Unit::TestCase
     assert_equal(range_str, compare_str)
   end
 
-  def test_succ
-    SortableSymbol.use_display_ord = true
-    assert_equal(Card.new(Rank.new(:jack), Suit.new(:spades)).succ,
-                 Card.new(Rank.new(:ten), Suit.new(:spades)))
-    assert_equal(Card.new(Rank.new(:two), Suit.new(:hearts)).succ,
-                 Card.new(Rank.new(:ace), Suit.new(:clubs)))
-    assert_nil(Card.new(Rank.new(:two), Suit.new(:diamonds)).succ)
-    SortableSymbol.use_display_ord = false
-    assert_equal(Card.new(Rank.new(:ten), Suit.new(:spades)).succ,
-                 Card.new(Rank.new(:jack), Suit.new(:spades)))
-    assert_equal(Card.new(Rank.new(:ace), Suit.new(:clubs)).succ,
-                 Card.new(Rank.new(:two), Suit.new(:diamonds)))
-    assert_nil(Card.new(Rank.new(:ace), Suit.new(:spades)).succ)
-  end
-
-  def test_first
-    SortableSymbol.use_display_ord = true
-    assert_equal(Card.first, Card.new(Rank.new(:ace), Suit.new(:spades)))
-    SortableSymbol.use_display_ord = false
-    assert_equal(Card.first, Card.new(Rank.new(:two), Suit.new(:clubs)))
-  end
-
-  def test_spaceship
-    SortableSymbol.use_display_ord = true
-    assert(Card.new(Rank.new(:king), Suit.new(:spades)) <
-           Card.new(Rank.new(:ace), Suit.new(:hearts)))
-    assert(Card.new(Rank.new(:king), Suit.new(:clubs)) <
-           Card.new(Rank.new(:ace), Suit.new(:diamonds)))
-    SortableSymbol.use_display_ord = false
-    assert(Card.new(Rank.new(:king), Suit.new(:spades)) >
-           Card.new(Rank.new(:ace), Suit.new(:hearts)))
-    assert(Card.new(Rank.new(:king), Suit.new(:clubs)) <
-           Card.new(Rank.new(:ace), Suit.new(:diamonds)))
-  end
-
-  def test_attr
-    assert_equal(Card.new(Rank.new(:four), Suit.new(:clubs)).suit,
-                 Suit.new(:clubs))
-    assert_equal(Card.new(Rank.new(:two), Suit.new(:clubs)).rank,
-                 Rank.new(:two))
-  end
-end
+__END__
 
 #class Cards
 #  def initialize
