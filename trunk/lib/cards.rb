@@ -80,7 +80,7 @@ class GenericSymbol
   # Object definitions
 
   def initialize(symbol)
-    raise ArgumentError.new("illegal symbol") unless
+    raise ArgumentError.new("illegal symbol: #{symbol}") unless
       self.class.symbol_info[symbol]
     @symbol = symbol
   end
@@ -145,12 +145,55 @@ class Suit < GenericSymbol
                    :spades   => SymbolInfo.new([3, 0], SPADE)}
 end
 
-__END__
-
 class Card
   include Comparable
 
+  VALUE = 0
+  DISPLAY = 1
+
+  # Class definitions
+
+  class << self
+    attr_reader :ordering
+
+    def order_valid?(order)
+      Rank.order_valid?(order) and Suit.order_valid?(order)
+    end
+
+    def ordering=(order)
+      if order_valid?(order)
+        Rank.ordering = order
+        Suit.ordering = order
+        @ordering = order
+      else
+        raise ArgumentError.new("ordering does not exist: #{order}")
+      end
+    end
+
+    def first
+      new(Rank.first, Suit.first)
+    end
+
+    def last
+      new(Rank.last, Suit.last)
+    end
+
+    def gen_all
+      (first..last).each do |card|
+        yield card
+      end
+    end
+  end
+
+  # Object definitions
+
+  attr_reader :rank, :suit
+
   def initialize(rank, suit)
+    rank = Rank.new(rank) if rank.class == Symbol
+    suit = Suit.new(suit) if suit.class == Symbol
+    raise ArgumentError.new("Illegal card (#{rank}, #{suit})") unless
+      rank.class == Rank and suit.class == Suit
     @rank = rank
     @suit = suit
   end
@@ -165,16 +208,28 @@ class Card
 
   def succ
     return Card.new(@rank.succ, @suit) if @rank.succ
-    return Card.new(@rank.first, @suit.succ) if @suit.succ
+    return Card.new(Rank.first, @suit.succ) if @suit.succ
     nil
   end
 
-  def Card.first
-    return Card.new(Rank.new, Suit.new)
+=begin
+  def succ
+    self.class.ordered_info.each_with_index do |obj, i|
+      if obj == self.class.symbol_info[@symbol]
+        if self.class.ordered_info[i+1]
+          return self.class.new(
+            self.class.symbol_info.index(self.class.ordered_info[i+1]))
+        else
+          return nil
+        end
+      end
+    end
   end
 
-  attr_reader :rank, :suit
+=end
 end
+
+__END__
 
 class Cards
   def initialize
