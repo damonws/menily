@@ -37,13 +37,24 @@ end
 class GenericSymbol
   include Comparable
 
-  # Class definitions
+  # Force use of custom constructor
+  # Each unique symbol will only be instantiated once
+  private_class_method :new
 
+  # Class definitions
+  @@sym_map = {}
   class << self
 
     attr_reader :symbol_info
     attr_reader :ordering
     attr_reader :ordered_info
+
+    # Only allow each symbol to be created once
+    def get(symbol)
+      sym_key = [self.class, symbol]
+      @@sym_map[sym_key] = new(symbol) unless @@sym_map[sym_key]
+      @@sym_map[sym_key]
+    end
 
     def order_valid?(order)
       @symbol_info and order >= 0 and
@@ -98,7 +109,7 @@ class GenericSymbol
     self.class.ordered_info.each_with_index do |obj, i|
       if obj == self.class.symbol_info[@symbol]
         if self.class.ordered_info[i+1]
-          return self.class.new(
+          return self.class.get(
             self.class.symbol_info.index(self.class.ordered_info[i+1]))
         else
           return nil
@@ -151,10 +162,25 @@ class Card
   VALUE = 0
   DISPLAY = 1
 
-  # Class definitions
+  # Force use of custom constructor
+  # Each card will only be instantiated once
+  private_class_method :new
 
+  # Class definitions
+  @@card_map = {}
   class << self
     attr_reader :ordering
+
+    # Only allow each card to be created once
+    def get(rank, suit)
+      rank = Rank.get(rank) if rank.class == Symbol
+      suit = Suit.get(suit) if suit.class == Symbol
+      raise ArgumentError.new("Illegal card (#{rank}, #{suit})") unless
+        rank.class == Rank and suit.class == Suit
+      card_key = [rank, suit]
+      @@card_map[card_key] = new(rank, suit) unless @@card_map[card_key]
+      @@card_map[card_key]
+    end
 
     def order_valid?(order)
       Rank.order_valid?(order) and Suit.order_valid?(order)
@@ -190,10 +216,6 @@ class Card
   attr_reader :rank, :suit
 
   def initialize(rank, suit)
-    rank = Rank.new(rank) if rank.class == Symbol
-    suit = Suit.new(suit) if suit.class == Symbol
-    raise ArgumentError.new("Illegal card (#{rank}, #{suit})") unless
-      rank.class == Rank and suit.class == Suit
     @rank = rank
     @suit = suit
   end
@@ -207,26 +229,10 @@ class Card
   end
 
   def succ
-    return Card.new(@rank.succ, @suit) if @rank.succ
-    return Card.new(Rank.first, @suit.succ) if @suit.succ
+    return Card.get(@rank.succ, @suit) if @rank.succ
+    return Card.get(Rank.first, @suit.succ) if @suit.succ
     nil
   end
-
-=begin
-  def succ
-    self.class.ordered_info.each_with_index do |obj, i|
-      if obj == self.class.symbol_info[@symbol]
-        if self.class.ordered_info[i+1]
-          return self.class.new(
-            self.class.symbol_info.index(self.class.ordered_info[i+1]))
-        else
-          return nil
-        end
-      end
-    end
-  end
-
-=end
 end
 
 __END__
