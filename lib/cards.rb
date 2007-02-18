@@ -209,6 +209,10 @@ class Card
         yield card
       end
     end
+
+    def to_a
+      (first..last).to_a
+    end
   end
 
   # Object definitions
@@ -235,20 +239,15 @@ class Card
   end
 end
 
-__END__
-
 class Cards
   def initialize
-    card = Card.first
-    @cards = []
-    while card
-      @cards <<= card
-      card = card.succ
-    end
+    @cards = Card.to_a
   end
 
   def dup
-    new_from_cards(@cards)
+    dup_cards = Cards.new
+    dup_cards.cards = @cards.dup
+    dup_cards
   end
 
   def to_s
@@ -276,13 +275,9 @@ class Cards
 
   protected
     attr_writer :cards
-
-    def new_from_cards(cards)
-      new = Cards.new
-      new.cards = cards.dup
-      new
-    end
 end
+
+__END__
 
 class Hand < Cards
   def initialize

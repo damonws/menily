@@ -165,7 +165,6 @@ class TcRankAndSuit < Test::Unit::TestCase
 end
 
 class TcCard < Test::Unit::TestCase
-
   ORD = [Card::VALUE, Card::DISPLAY]
   FIRSTCARD = ["2#{Suit::CLUB}", "A#{Suit::SPADE}"]
   LASTCARD = ["A#{Suit::SPADE}", "2#{Suit::DIAMOND}"]
@@ -269,6 +268,18 @@ class TcCard < Test::Unit::TestCase
     assert_equal(card_str, compare_str)
   end
 
+  def test_to_a
+    (0...ORD.length).each do |order|
+      Card.ordering = order
+      i = 0
+      Card.gen_all do |card|
+        assert_equal(card, Card.to_a[i])
+        i += 1
+      end
+    end
+    assert_equal(52, Card.to_a.length)
+  end
+
   def test_attr
     assert_equal(Card.get(Rank.get(:four), Suit.get(:clubs)).suit,
                  Suit.get(:clubs))
@@ -277,104 +288,54 @@ class TcCard < Test::Unit::TestCase
   end
 end
 
-__END__
+class TcCards < Test::Unit::TestCase
+  ORD = [Card::VALUE, Card::DISPLAY]
 
-#class Cards
-#  def initialize
-#    card = Card.first
-#    @cards = []
-#    while card
-#      @cards <<= card
-#      card = card.succ
-#    end
-#  end
-#
-#  def dup
-#    new_from_cards(@cards)
-#  end
-#
-#  def to_s
-#    @cards.inject { |str,card| "#{str} #{card}" }
-#  end
-#
-#  def shuffle!
-#    @cards = @cards.dup.collect { @cards.slice!(rand(@cards.length)) }
-#    self
-#  end
-#
-#  def shuffle
-#    self.dup.shuffle!
-#  end
-#
-#  # hands is an array of empty Hand-derived objects
-#  def deal(hands)
-#    @cards.each_with_index { |card,i| hands[i%hands.length].add(card) }
-#    hands
-#  end
-#
-#  def length
-#    @cards.length
-#  end
-#
-#  protected
-#    attr_writer :cards
-#
-#    def new_from_cards(cards)
-#      new = Cards.new
-#      new.cards = cards.dup
-#      new
-#    end
-#end
-#
-#class Hand < Cards
-#  def initialize
-#    @cards = []
-#  end
-#
-#  def add(card)
-#    @cards <<= card
-#  end
-#
-#  def remove(card)
-#    @cards.delete(card)
-#  end
-#end
-#
-#class BridgeHand < Hand
-#  def sort!
-#    @cards.sort!
-#  end
-#
-#  def to_s
-#    str = ''
-#    for suit in [Suit.new(:spades), Suit.new(:hearts),
-#                 Suit.new(:diamonds), Suit.new(:clubs)]
-#      str = "#{str}#{suit} "
-#      @cards.inject(str) do |s,card|
-#        str = "#{str} #{card.rank}" if card.suit == suit
-#      end
-#      str += "\n"
-#    end
-#    str
-#  end
-#end
-#
-#class BridgeDeal
-#  attr_reader :hands
-#
-#  def initialize
-#    SortableSymbol.use_display_ord=true
-#    @hands = []
-#    4.times { @hands <<= BridgeHand.new }
-#    Cards.new.shuffle.deal(@hands)
-#    @hands.each { |hand| hand.sort! }
-#  end
-#
-#  def to_s
-#    "North\n#{@hands[0]}\n" +
-#    "\nEast\n#{@hands[1]}\n" +
-#    "\nSouth\n#{@hands[2]}\n" +
-#    "\nWest\n#{@hands[3]}"
-#  end
-#end
-#
+  def all_card_str(order)
+    suit = [ [Suit::CLUB, Suit::DIAMOND, Suit::HEART, Suit::SPADE],
+             [Suit::SPADE, Suit::HEART, Suit::CLUB, Suit::DIAMOND] ]
+    rank = [ %w{ 2 3 4 5 6 7 8 9 10 J Q K A },
+             %w{ A K Q J 10 9 8 7 6 5 4 3 2 } ]
+
+    suit[order].inject('') do |str, s|
+      str + rank[order].inject('') do |str, r|
+        str + ' ' + r + s
+      end
+    end.strip
+  end
+
+  def test_instantiate
+    (0...ORD.length).each do |order|
+      Card.ordering = order
+      assert_equal(all_card_str(order), Cards.new.to_s)
+      assert_raise(ArgumentError) { Cards.new(:blah) }
+    end
+  end
+
+  def test_dup
+    (0...ORD.length).each do |order|
+      Card.ordering = order
+      deck1 = Cards.new
+      deck2 = deck1.dup
+      assert_not_equal(deck1.object_id, deck2.object_id)
+      assert_equal(deck1.to_s, deck2.to_s)
+    end
+  end
+
+  def test_length
+    assert_equal(52, Cards.new.length)
+  end
+
+  def test_shuffle
+    (0...ORD.length).each do |order|
+      Card.ordering = order
+      deck = Cards.new
+      deck1 = deck.shuffle
+      deck2 = deck.shuffle
+      deck3 = deck.shuffle
+      assert_not_equal(deck.to_s, deck1.to_s)
+      assert_not_equal(deck.to_s, deck2.to_s)
+      assert_not_equal(deck.to_s, deck3.to_s)
+    end
+  end
+end
