@@ -28,9 +28,10 @@ class BridgeHand < Hand
     @cards.sort!
   end
 
-=begin
   def to_s
-    Card.ordering = Card::DISPLAY
+    Rank.ordering = Rank::DESCEND
+    Suit.ordering = Suit::DESCEND
+    sort!
     str = ''
     Suit.gen_all do |suit|
       str = "#{str}#{suit} "
@@ -41,26 +42,25 @@ class BridgeHand < Hand
     end
     str
   end
-=end
 end
-
-__END__
 
 class BridgeDeal
   attr_reader :hands
 
+  NORTH = 0
+  EAST = 1
+  SOUTH = 2
+  WEST = 3
+
+  NAME = %w{ North East South West }
+
   def initialize
-    SortableSymbol.use_display_ord=true
     @hands = []
     4.times { @hands <<= BridgeHand.new }
     Cards.new.shuffle.deal(@hands)
-    @hands.each { |hand| hand.sort! }
   end
 
   def to_s
-    "North\n#{@hands[0]}\n" +
-    "\nEast\n#{@hands[1]}\n" +
-    "\nSouth\n#{@hands[2]}\n" +
-    "\nWest\n#{@hands[3]}"
+    (NORTH..WEST).inject('') { |s,n| "#{s}#{NAME[n]}\n#{@hands[n]}\n" }.strip
   end
 end

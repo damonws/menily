@@ -28,10 +28,39 @@ require 'bridge'
 
 class TcBridgeHand < Test::Unit::TestCase
   def test_sort
-    Card.ordering = Card::DISPLAY
     hand = [BridgeHand.new]
     Cards.new.shuffle.deal(hand)
     hand[0].sort!
     Card.gen_all { |card| assert_equal(card, hand[0].top) }
+  end
+
+  def test_to_s
+    all_card_hand =
+      "#{Suit::SPADE}  A K Q J 10 9 8 7 6 5 4 3 2\n" +
+      "#{Suit::HEART}  A K Q J 10 9 8 7 6 5 4 3 2\n" +
+      "#{Suit::DIAMOND}  A K Q J 10 9 8 7 6 5 4 3 2\n" +
+      "#{Suit::CLUB}  A K Q J 10 9 8 7 6 5 4 3 2\n"
+    hand = [BridgeHand.new]
+    Cards.new.deal(hand)
+    assert_equal(all_card_hand, hand.to_s)
+  end
+end
+
+class TcBridgeDeal < Test::Unit::TestCase
+  def test_instantiate
+    deal = BridgeDeal.new
+    assert_equal(4, deal.hands.length)
+    deal.hands.each { |hand| assert_equal(13, hand.length) }
+  end
+
+  def test_to_s
+    deal_regex = (BridgeDeal::NORTH..BridgeDeal::WEST).inject('') do |s,n|
+      "#{s}#{BridgeDeal::NAME[n]}\n" +
+      "#{Suit::SPADE}.*\n" +
+      "#{Suit::HEART}.*\n" +
+      "#{Suit::DIAMOND}.*\n" +
+      "#{Suit::CLUB}.*\n\n"
+    end.strip
+    10.times { assert_match(/#{deal_regex}/, BridgeDeal.new.to_s) }
   end
 end
