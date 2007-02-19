@@ -239,6 +239,9 @@ class Card
   end
 end
 
+class CardsError < StandardError
+end
+
 class Cards
   def initialize
     @cards = Card.to_a
@@ -251,7 +254,7 @@ class Cards
   end
 
   def to_s
-    @cards.inject { |str,card| "#{str} #{card}" }
+    @cards.inject('') { |str,card| "#{str} #{card}" }.strip
   end
 
   def shuffle!
@@ -263,9 +266,18 @@ class Cards
     self.dup.shuffle!
   end
 
+  def top
+    @cards.shift
+  end
+
   # hands is an array of empty Hand-derived objects
-  def deal(hands)
-    @cards.each_with_index { |card,i| hands[i%hands.length].add(card) }
+  def deal(hands, cnt=@cards.length, start=0)
+    raise CardsError if cnt > @cards.length or start >= hands.length
+    start.times { hands.push(hands.shift) }
+    cnt.times do
+      hands[0].add(top)
+      hands.push(hands.shift)
+    end
     hands
   end
 
@@ -277,8 +289,6 @@ class Cards
     attr_writer :cards
 end
 
-__END__
-
 class Hand < Cards
   def initialize
     @cards = []
@@ -286,12 +296,16 @@ class Hand < Cards
 
   def add(card)
     @cards <<= card
+    self
   end
 
   def remove(card)
     @cards.delete(card)
+    self
   end
 end
+
+__END__
 
 class BridgeHand < Hand
   def sort!

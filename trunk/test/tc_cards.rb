@@ -304,6 +304,10 @@ class TcCards < Test::Unit::TestCase
     end.strip
   end
 
+  def test_to_s
+    assert_equal(String, Cards.new.to_s.class)
+  end
+
   def test_instantiate
     (0...ORD.length).each do |order|
       Card.ordering = order
@@ -337,5 +341,62 @@ class TcCards < Test::Unit::TestCase
       assert_not_equal(deck.to_s, deck2.to_s)
       assert_not_equal(deck.to_s, deck3.to_s)
     end
+  end
+
+  def top
+    Card.ordering = Card::VALUE
+    deck = Cards.new
+    assert_equal(Card.get(:two, :clubs), deck.top)
+    assert_equal(51, deck.top)
+    assert_equal(Card.get(:three, :clubs), deck.top)
+    assert_equal(50, deck.top)
+  end
+end
+
+class TcHand < Test::Unit::TestCase
+  def test_instantiate
+    h = Hand.new
+    assert_equal(0, h.length)
+    assert_equal('', h.to_s)
+  end
+
+  def test_to_s
+    assert_equal(String, Hand.new.to_s.class)
+  end
+
+  def test_add
+    h = Hand.new.add(Card.get(:jack, :clubs))
+    assert_equal(1, h.length)
+    assert_equal("J#{Suit::CLUB}", h.to_s)
+    h.add(Card.get(:ace, :spades)).add(Card.get(:four, :hearts))
+    assert_equal(3, h.length)
+    assert_equal("J#{Suit::CLUB} A#{Suit::SPADE} 4#{Suit::HEART}", h.to_s)
+  end
+
+  def test_remove
+    h = Hand.new.add(Card.get(:jack, :clubs)).add(
+      Card.get(:ace, :spades)).add(Card.get(:four, :hearts))
+    h.remove(Card.get(:ace, :spades))
+    assert_equal(2, h.length)
+    assert_equal("J#{Suit::CLUB} 4#{Suit::HEART}", h.to_s)
+    h.add(Card.get(:king, :clubs)).remove(Card.get(:jack, :clubs)).remove(
+      Card.get(:king, :clubs))
+    assert_equal("4#{Suit::HEART}", h.to_s)
+  end
+
+  def test_deal
+    hands = []
+    deck = Cards.new
+    3.times { hands <<= Hand.new }
+    deck.deal(hands, 7)
+    assert_equal(3, hands.length)
+    assert_equal(45, deck.length)
+    [2, 2, 3].each_with_index { |len,i| assert_equal(len, hands[i].length) }
+    deck.deal(hands, 8, 2)
+    assert_equal(37, deck.length)
+    [4, 6, 5].each_with_index { |len,i| assert_equal(len, hands[i].length) }
+    deck.deal(hands)
+    assert_equal(0, deck.length)
+    [18, 17, 17].each_with_index { |len,i| assert_equal(len, hands[i].length) }
   end
 end
