@@ -49,6 +49,7 @@ class TcGenericSymbol < Test::Unit::TestCase
   end
 
   def test_ordering
+    assert_not_equal(nil, TestSymbol.ordering)
     (0...ORD.length).each do |order|
       TestSymbol.ordering = order
       assert_equal(order, TestSymbol.ordering)
@@ -57,6 +58,7 @@ class TcGenericSymbol < Test::Unit::TestCase
   end
 
   def test_first
+    assert_not_equal(nil, TestSymbol.ordering)
     (0...ORD.length).each do |order|
       TestSymbol.ordering = order
       assert_equal(ORD[order][0,1], TestSymbol.first.to_s)
@@ -64,6 +66,7 @@ class TcGenericSymbol < Test::Unit::TestCase
   end
 
   def test_last
+    assert_not_equal(nil, TestSymbol.ordering)
     (0...ORD.length).each do |order|
       TestSymbol.ordering = order
       assert_equal(ORD[order][-1,1], TestSymbol.last.to_s)
@@ -71,6 +74,7 @@ class TcGenericSymbol < Test::Unit::TestCase
   end
 
   def test_spaceship
+    assert_not_equal(nil, TestSymbol.ordering)
     (0...ORD.length).each do |order|
       TestSymbol.ordering = order
       assert(TestSymbol.first < TestSymbol.last)
@@ -82,6 +86,7 @@ class TcGenericSymbol < Test::Unit::TestCase
   end
 
   def test_succ
+    assert_not_equal(nil, TestSymbol.ordering)
     (0...ORD.length).each do |order|
       TestSymbol.ordering = order
       assert_nil(TestSymbol.last.succ)
@@ -91,6 +96,7 @@ class TcGenericSymbol < Test::Unit::TestCase
   end
 
   def test_gen_all
+    assert_not_equal(nil, TestSymbol.ordering)
     (0...ORD.length).each do |order|
       TestSymbol.ordering = order
       sym_str = ''
@@ -108,11 +114,11 @@ class TcRank < Test::Unit::TestCase
   end
 
   def test_get_all
-    Rank.ordering = Rank::VALUE
+    Rank.ordering = Rank::ASCEND
     ranks = ''
     Rank.gen_all { |rank| ranks += rank.to_s }
     assert_equal('2345678910JQKA', ranks)
-    Rank.ordering = Rank::DISPLAY
+    Rank.ordering = Rank::DESCEND
     ranks = ''
     Rank.gen_all { |rank| ranks += rank.to_s }
     assert_equal('AKQJ1098765432', ranks)
@@ -127,12 +133,12 @@ class TcSuit < Test::Unit::TestCase
   end
 
   def test_get_all
-    Suit.ordering = Suit::VALUE
+    Suit.ordering = Suit::ASCEND
     suits = ''
     Suit.gen_all { |suit| suits += suit.to_s }
     assert_equal("#{Suit::CLUB}#{Suit::DIAMOND}#{Suit::HEART}#{Suit::SPADE}",
                  suits)
-    Suit.ordering = Suit::DISPLAY
+    Suit.ordering = Suit::BLACKRED
     suits = ''
     Suit.gen_all { |suit| suits += suit.to_s }
     assert_equal("#{Suit::SPADE}#{Suit::HEART}#{Suit::CLUB}#{Suit::DIAMOND}",
@@ -143,8 +149,8 @@ end
 
 class TcRankAndSuit < Test::Unit::TestCase
   def test_independent_ordering
-    Rank.ordering = Rank::VALUE
-    Suit.ordering = Suit::DISPLAY
+    Rank.ordering = Rank::ASCEND
+    Suit.ordering = Suit::BLACKRED
     ranks = ''
     suits = ''
     Rank.gen_all { |rank| ranks += rank.to_s }
@@ -152,8 +158,8 @@ class TcRankAndSuit < Test::Unit::TestCase
     assert_equal('2345678910JQKA', ranks)
     assert_equal("#{Suit::SPADE}#{Suit::HEART}#{Suit::CLUB}#{Suit::DIAMOND}",
                  suits)
-    Rank.ordering = Rank::DISPLAY
-    Suit.ordering = Suit::VALUE
+    Rank.ordering = Rank::DESCEND
+    Suit.ordering = Suit::ASCEND
     ranks = ''
     suits = ''
     Rank.gen_all { |rank| ranks += rank.to_s }
@@ -165,7 +171,7 @@ class TcRankAndSuit < Test::Unit::TestCase
 end
 
 class TcCard < Test::Unit::TestCase
-  ORD = [Card::VALUE, Card::DISPLAY]
+  ORD = [[Rank::ASCEND, Suit::ASCEND], [Rank::DESCEND, Suit::BLACKRED]]
   FIRSTCARD = ["2#{Suit::CLUB}", "A#{Suit::SPADE}"]
   LASTCARD = ["A#{Suit::SPADE}", "2#{Suit::DIAMOND}"]
   CARDSUCC = [[[:ace, :clubs,    "2#{Suit::DIAMOND}", "3#{Suit::DIAMOND}"],
@@ -189,53 +195,38 @@ class TcCard < Test::Unit::TestCase
                  Card.get(Rank.get(:jack), Suit.get(:clubs)).object_id)
   end
 
-  def test_order_validation
-    (0...ORD.length).each do |order|
-      assert_equal(true, Card.order_valid?(order))
-    end
-    assert_equal(false, Card.order_valid?(ORD.length))
-  end
-
-  def test_ordering
-    (0...ORD.length).each do |order|
-      Card.ordering = order
-      assert_equal(order, Card.ordering)
-    end
-    assert_raise(ArgumentError) { Card.ordering = ORD.length }
-  end
-
   def test_first
-    (0...ORD.length).each do |order|
-      Card.ordering = order
-      assert_equal(FIRSTCARD[order], Card.first.to_s)
+    ORD.each_with_index do |order,i|
+      Rank.ordering, Suit.ordering = order
+      assert_equal(FIRSTCARD[i], Card.first.to_s)
     end
   end
 
   def test_last
-    (0...ORD.length).each do |order|
-      Card.ordering = order
-      assert_equal(LASTCARD[order], Card.last.to_s)
+    ORD.each_with_index do |order,i|
+      Rank.ordering, Suit.ordering = order
+      assert_equal(LASTCARD[i], Card.last.to_s)
     end
   end
 
   def test_spaceship
-    (0...ORD.length).each do |order|
-      Card.ordering = order
+    ORD.each do |order|
+      Rank.ordering, Suit.ordering = order
       assert(Card.first < Card.last)
     end
-    Card.ordering = 0
+    Rank.ordering, Suit.ordering = ORD[0]
     assert(Card.get(:king, :spades) > Card.get(:ace, :hearts))
     assert(Card.get(:king, :clubs) < Card.get(:ace, :diamonds))
-    Card.ordering = 1
+    Rank.ordering, Suit.ordering = ORD[1]
     assert(Card.get(:king, :spades) < Card.get(:ace, :hearts))
     assert(Card.get(:king, :clubs) < Card.get(:ace, :diamonds))
   end
 
   def test_succ
-    (0...ORD.length).each do |order|
-      Card.ordering = order
+    ORD.each_with_index do |order,i|
+      Rank.ordering, Suit.ordering = order
       assert_nil(Card.last.succ)
-      for rank, suit, str1, str2 in CARDSUCC[order]
+      for rank, suit, str1, str2 in CARDSUCC[i]
         assert_equal(str1, Card.get(rank, suit).succ.to_s)
         assert_equal(str2, Card.get(rank, suit).succ.succ.to_s)
       end
@@ -243,34 +234,23 @@ class TcCard < Test::Unit::TestCase
   end
 
   def test_gen_all_value
-    Card.ordering = Card::VALUE
-    card_str = ''
-    Card.gen_all { |x| card_str += x.to_s }
-    compare_str = ''
-    [Suit::CLUB, Suit::DIAMOND, Suit::HEART, Suit::SPADE].each do |suit|
-      %w{ 2 3 4 5 6 7 8 9 10 J Q K A }.each do |rank|
-        compare_str += rank + suit
+    ORD.each_with_index do |order,i|
+      Rank.ordering, Suit.ordering = order
+      card_str = ''
+      Card.gen_all { |x| card_str += x.to_s }
+      compare_str = ''
+      Suit.gen_all do |suit|
+        Rank.gen_all do |rank|
+          compare_str += rank.to_s + suit.to_s
+        end
       end
+      assert_equal(card_str, compare_str)
     end
-    assert_equal(card_str, compare_str)
-  end
-
-  def test_gen_all_display
-    Card.ordering = Card::DISPLAY
-    card_str = ''
-    Card.gen_all { |x| card_str += x.to_s }
-    compare_str = ''
-    [Suit::SPADE, Suit::HEART, Suit::CLUB, Suit::DIAMOND].each do |suit|
-      %w{ A K Q J 10 9 8 7 6 5 4 3 2 }.each do |rank|
-        compare_str += rank + suit
-      end
-    end
-    assert_equal(card_str, compare_str)
   end
 
   def test_to_a
-    (0...ORD.length).each do |order|
-      Card.ordering = order
+    ORD.each do |order|
+      Rank.ordering, Suit.ordering = order
       i = 0
       Card.gen_all do |card|
         assert_equal(card, Card.to_a[i])
@@ -289,7 +269,7 @@ class TcCard < Test::Unit::TestCase
 end
 
 class TcCards < Test::Unit::TestCase
-  ORD = [Card::VALUE, Card::DISPLAY]
+  ORD = [[Rank::ASCEND, Suit::ASCEND], [Rank::DESCEND, Suit::BLACKRED]]
 
   def all_card_str(order)
     suit = [ [Suit::CLUB, Suit::DIAMOND, Suit::HEART, Suit::SPADE],
@@ -309,16 +289,16 @@ class TcCards < Test::Unit::TestCase
   end
 
   def test_instantiate
-    (0...ORD.length).each do |order|
-      Card.ordering = order
-      assert_equal(all_card_str(order), Cards.new.to_s)
+    ORD.each_with_index do |order,i|
+      Rank.ordering, Suit.ordering = order
+      assert_equal(all_card_str(i), Cards.new.to_s)
       assert_raise(ArgumentError) { Cards.new(:blah) }
     end
   end
 
   def test_dup
-    (0...ORD.length).each do |order|
-      Card.ordering = order
+    ORD.each do |order|
+      Rank.ordering, Suit.ordering = order
       deck1 = Cards.new
       deck2 = deck1.dup
       assert_not_equal(deck1.object_id, deck2.object_id)
@@ -331,8 +311,8 @@ class TcCards < Test::Unit::TestCase
   end
 
   def test_shuffle
-    (0...ORD.length).each do |order|
-      Card.ordering = order
+    ORD.each do |order|
+      Rank.ordering, Suit.ordering = order
       deck = Cards.new
       deck1 = deck.shuffle
       deck2 = deck.shuffle
@@ -344,7 +324,7 @@ class TcCards < Test::Unit::TestCase
   end
 
   def top
-    Card.ordering = Card::VALUE
+    Rank.ordering, Suit.ordering = ORD[0]
     deck = Cards.new
     assert_equal(Card.get(:two, :clubs), deck.top)
     assert_equal(51, deck.top)
