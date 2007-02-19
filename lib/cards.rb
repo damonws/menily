@@ -44,10 +44,7 @@ class GenericSymbol
   # Class definitions
   @@sym_map = {}
   class << self
-
     attr_reader :symbol_info
-    attr_reader :ordering
-    attr_reader :ordered_info
 
     # Only allow each symbol to be created once
     def get(symbol)
@@ -71,14 +68,30 @@ class GenericSymbol
       end
     end
 
+    def ordering
+      if not self.instance_variables.include? "@ordering"
+        self.ordering = 0
+      end
+      @ordering
+    end
+
+    def ordered_info
+      if not self.instance_variables.include? "@ordered_info"
+        raise SymbolError.new("inconsistent ordering") unless
+          not self.instance_variables.include? "@ordering"
+        self.ordering = 0
+        raise SymbolError.new("inconsistent ordering") unless
+          self.instance_variables.include? "@ordered_info"
+      end
+      @ordered_info
+    end
+
     def first
-      raise SymbolError.new("ordering not specified") unless @ordering
-      new(@symbol_info.index(@ordered_info[0]))
+      new(@symbol_info.index(self.ordered_info[0]))
     end
 
     def last
-      raise SymbolError.new("ordering not specified") unless @ordering
-      new(@symbol_info.index(@ordered_info[-1]))
+      new(@symbol_info.index(self.ordered_info[-1]))
     end
 
     def gen_all
@@ -123,8 +136,8 @@ class GenericSymbol
 end
 
 class Rank < GenericSymbol
-  VALUE = 0
-  DISPLAY = 1
+  ASCEND = 0
+  DESCEND = 1
 
   @symbol_info = { :two   => SymbolInfo.new([ 0, 12], '2'),
                    :three => SymbolInfo.new([ 1, 11], '3'),
@@ -142,25 +155,23 @@ class Rank < GenericSymbol
 end
 
 class Suit < GenericSymbol
-  VALUE = 0
-  DISPLAY = 1
+  ASCEND = 0
+  BLACKRED = 1
+  DESCEND = 2
 
   CLUB    = "\005"
   DIAMOND = "\004"
   HEART   = "\003"
   SPADE   = "\006"
 
-  @symbol_info = { :clubs    => SymbolInfo.new([0, 2], CLUB),
-                   :diamonds => SymbolInfo.new([1, 3], DIAMOND),
-                   :hearts   => SymbolInfo.new([2, 1], HEART),
-                   :spades   => SymbolInfo.new([3, 0], SPADE)}
+  @symbol_info = { :clubs    => SymbolInfo.new([0, 2, 3], CLUB),
+                   :diamonds => SymbolInfo.new([1, 3, 2], DIAMOND),
+                   :hearts   => SymbolInfo.new([2, 1, 1], HEART),
+                   :spades   => SymbolInfo.new([3, 0, 0], SPADE)}
 end
 
 class Card
   include Comparable
-
-  VALUE = 0
-  DISPLAY = 1
 
   # Force use of custom constructor
   # Each card will only be instantiated once
@@ -169,8 +180,6 @@ class Card
   # Class definitions
   @@card_map = {}
   class << self
-    attr_reader :ordering
-
     # Only allow each card to be created once
     def get(rank, suit)
       rank = Rank.get(rank) if rank.class == Symbol
@@ -180,20 +189,6 @@ class Card
       card_key = [rank, suit]
       @@card_map[card_key] = new(rank, suit) unless @@card_map[card_key]
       @@card_map[card_key]
-    end
-
-    def order_valid?(order)
-      Rank.order_valid?(order) and Suit.order_valid?(order)
-    end
-
-    def ordering=(order)
-      if order_valid?(order)
-        Rank.ordering = order
-        Suit.ordering = order
-        @ordering = order
-      else
-        raise ArgumentError.new("ordering does not exist: #{order}")
-      end
     end
 
     def first
