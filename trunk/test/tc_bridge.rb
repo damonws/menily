@@ -44,6 +44,25 @@ class TcBridgeHand < Test::Unit::TestCase
     Cards.new.deal(hand)
     assert_equal(all_card_hand, hand.to_s)
   end
+
+  def test_hcp
+    north_hand = [ [:ace, :spades],     [:king, :spades],
+                   [:queen, :spades],   [:jack, :spades] ]
+    east_hand  = [ [:ace, :hearts],     [:king, :hearts],
+                   [:queen, :hearts],   [:jack, :hearts] ]
+    south_hand = [ [:ace, :clubs],      [:king, :clubs],
+                   [:queen, :clubs],    [:jack, :clubs] ]
+    west_hand  = [ [:ace, :diamonds],   [:king, :diamonds],
+                   [:queen, :diamonds], [:jack, :diamonds] ]
+    deal = BridgeDeal.new(:north => north_hand, :south => south_hand,
+                          :west  => west_hand , :east  => east_hand)
+    deal.hands.each { |hand| assert_equal(10, hand.hcp) }
+
+    3.times do
+      deal = BridgeDeal.new
+      assert_equal(40, deal.hands.inject(0) { |pts,hand| pts + hand.hcp })
+    end
+  end
 end
 
 class TcBridgeDeal < Test::Unit::TestCase
@@ -51,6 +70,33 @@ class TcBridgeDeal < Test::Unit::TestCase
     deal = BridgeDeal.new
     assert_equal(4, deal.hands.length)
     deal.hands.each { |hand| assert_equal(13, hand.length) }
+  end
+
+  def test_instantiate_set_hands
+    north_hand = [ [:ace, :spades], [:king, :spades], [:queen, :spades],
+                  [:jack, :spades], [:ten, :spades], [:nine, :spades] ]
+    deal = BridgeDeal.new(:north => north_hand)
+    assert_equal(4, deal.hands.length)
+    deal.hands.each { |hand| assert_equal(13, hand.length) }
+    assert_match(/^#{Suit::SPADE}  A K Q J 10 9/,
+                 deal.hands[BridgeDeal::INDEX[:north]].to_s)
+
+    north_hand = [ [:ace, :spades]  , [:king, :spades]   ]
+    east_hand  = [ [:ace, :hearts]  , [:king, :hearts]   ]
+    south_hand = [ [:ace, :clubs]   , [:king, :clubs]    ]
+    west_hand  = [ [:ace, :diamonds], [:king, :diamonds] ]
+    deal = BridgeDeal.new(:north => north_hand, :south => south_hand,
+                          :west  => west_hand , :east  => east_hand)
+    assert_equal(4, deal.hands.length)
+    deal.hands.each { |hand| assert_equal(13, hand.length) }
+    assert_match(/^#{Suit::SPADE}  A K/,
+                 deal.hands[BridgeDeal::INDEX[:north]].to_s)
+    assert_match(/^#{Suit::HEART}  A K/,
+                 deal.hands[BridgeDeal::INDEX[:east]].to_s)
+    assert_match(/^#{Suit::CLUB}  A K/,
+                 deal.hands[BridgeDeal::INDEX[:south]].to_s)
+    assert_match(/^#{Suit::DIAMOND}  A K/,
+                 deal.hands[BridgeDeal::INDEX[:west]].to_s)
   end
 
   def test_to_s

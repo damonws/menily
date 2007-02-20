@@ -276,17 +276,16 @@ class Cards
     hands
   end
 
-  def length
-    @cards.length
+  def deal_even(hands, cnt=@cards.length)
+    raise CardsError if cnt > @cards.length
+    cnt.times do
+      hands.min { |a,b| a.length <=> b.length }.add(top)
+    end
+    hands
   end
 
-  protected
-    attr_writer :cards
-end
-
-class Hand < Cards
-  def initialize
-    @cards = []
+  def length
+    @cards.length
   end
 
   def add(card)
@@ -297,5 +296,14 @@ class Hand < Cards
   def remove(card)
     @cards.delete(card)
     self
+  end
+
+  protected
+    attr_writer :cards
+end
+
+class Hand < Cards
+  def initialize
+    @cards = []
   end
 end
