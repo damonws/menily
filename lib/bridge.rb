@@ -23,6 +23,9 @@
 
 require 'cards'
 
+class BridgeError < StandardError
+end
+
 class BridgeHand < Hand
   def sort!
     @cards.sort!
@@ -42,6 +45,18 @@ class BridgeHand < Hand
     end
     str
   end
+
+  def hcp
+    @cards.inject(0) do |pts,card|
+      pts += case card.rank
+             when Rank.get(:ace):   4
+             when Rank.get(:king):  3
+             when Rank.get(:queen): 2
+             when Rank.get(:jack):  1
+             else 0
+             end
+    end
+  end
 end
 
 class BridgeDeal
@@ -51,13 +66,27 @@ class BridgeDeal
   EAST = 1
   SOUTH = 2
   WEST = 3
-
+  INDEX = { :north => NORTH, :east => EAST, :south => SOUTH, :west => WEST }
   NAME = %w{ North East South West }
 
-  def initialize
+  def initialize(initial_deal = nil)
     @hands = []
     4.times { @hands <<= BridgeHand.new }
-    Cards.new.shuffle.deal(@hands)
+    deck = Cards.new
+
+    if initial_deal
+      raise BridgeError("too many hands") if initial_deal.length > 4
+      initial_deal.each do |seat,cards|
+        raise BridgeError("too many cards for #{seat}") if cards.length > 13
+        cards.each do |card_arr|
+          card = Card.get(card_arr[0], card_arr[1])
+          @hands[INDEX[seat]].add(card)
+          deck.remove(card)
+        end
+      end
+    end
+
+    deck.shuffle.deal_even(@hands)
   end
 
   def to_s

@@ -379,4 +379,26 @@ class TcHand < Test::Unit::TestCase
     assert_equal(0, deck.length)
     [18, 17, 17].each_with_index { |len,i| assert_equal(len, hands[i].length) }
   end
+
+  def test_deal_even
+    hands = []
+    deck = Cards.new
+    2.times { hands <<= Hand.new }
+    deck.deal_even(hands, 7)
+    assert_equal(45, deck.length)
+    [4, 3].each_with_index { |len,i| assert_equal(len, hands[i].length) }
+    hands <<= Hand.new
+    [4, 3, 0].each_with_index { |len,i| assert_equal(len, hands[i].length) }
+    deck.deal_even(hands, 2)
+    assert_equal(43, deck.length)
+    [4, 3, 2].each_with_index { |len,i| assert_equal(len, hands[i].length) }
+    deck.deal_even(hands, 6)
+    assert_equal(37, deck.length)
+    [5, 5, 5].each_with_index { |len,i| assert_equal(len, hands[i].length) }
+    hands <<= Hand.new
+    [5, 5, 5, 0].each_with_index { |len,i| assert_equal(len, hands[i].length) }
+    deck.deal_even(hands)
+    assert_equal(0, deck.length)
+    [13,13,13,13].each_with_index { |len,i| assert_equal(len, hands[i].length) }
+  end
 end
