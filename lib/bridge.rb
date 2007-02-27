@@ -38,9 +38,7 @@ class BridgeHand < Hand
     str = ''
     Suit.gen_all do |suit|
       str = "#{str}#{suit} "
-      @cards.inject(str) do |s,card|
-        str = "#{str} #{card.rank}" if card.suit == suit
-      end
+      @cards.each { |card| str = "#{str} #{card.rank}" if card.suit == suit }
       str += "\n"
     end
     str
@@ -56,6 +54,19 @@ class BridgeHand < Hand
              else 0
              end
     end
+  end
+
+  def lenp
+    points = 0
+    Suit.gen_all do |suit|
+      count = 0
+      @cards.each do |card|
+        if card.suit == suit and (count += 1) > 4
+          points += 1
+        end
+      end
+    end
+    points
   end
 end
 
@@ -75,9 +86,9 @@ class BridgeDeal
     deck = Cards.new
 
     if initial_deal
-      raise BridgeError("too many hands") if initial_deal.length > 4
+      raise BridgeError.new("too many hands") if initial_deal.length > 4
       initial_deal.each do |seat,cards|
-        raise BridgeError("too many cards for #{seat}") if cards.length > 13
+        raise BridgeError.new("too many cards for #{seat}") if cards.length > 13
         cards.each do |card_arr|
           card = Card.get(card_arr[0], card_arr[1])
           @hands[INDEX[seat]].add(card)

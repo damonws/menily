@@ -63,6 +63,22 @@ class TcBridgeHand < Test::Unit::TestCase
       assert_equal(40, deal.hands.inject(0) { |pts,hand| pts + hand.hcp })
     end
   end
+
+  def test_lenp
+    hand = [BridgeHand.new]
+    Cards.new.deal(hand)
+    assert_equal(4*9, hand[0].lenp) # 9 points from each suit for whole deck
+
+    north_hand = [ [:ace,   :spades], [:king,  :spades],
+                   [:queen, :spades], [:jack,  :spades],
+                   [:ten,   :spades], [:nine,  :spades],
+                   [:queen, :hearts], [:jack,  :hearts],
+                   [:ten,   :hearts], [:nine,  :hearts],
+                   [:eight, :hearts], [:seven, :diamonds],
+                   [:two, :clubs] ]
+    deal = BridgeDeal.new(:north => north_hand)
+    assert_equal(3, deal.hands[BridgeDeal::INDEX[:north]].lenp)
+  end
 end
 
 class TcBridgeDeal < Test::Unit::TestCase
