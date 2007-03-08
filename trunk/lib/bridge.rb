@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby -w
 #
 # Copyright (c) 2007 Damon W. Smith
 #
