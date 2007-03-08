@@ -237,6 +237,8 @@ class CardsError < StandardError
 end
 
 class Cards
+  attr_accessor :cards
+
   def initialize
     @cards = Card.to_a
   end
@@ -297,8 +299,13 @@ class Cards
     self
   end
 
-  protected
-    attr_writer :cards
+  def suit(sym)
+    sym = Suit.get(sym) if sym.class == Symbol
+    raise ArgumentError("#{sym} is not a suit symbol") unless sym.class == Suit
+    @cards.inject([]) do |s,card|
+      card.suit == sym ? s + [card] : s
+    end
+  end
 end
 
 class Hand < Cards

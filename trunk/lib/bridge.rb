@@ -36,9 +36,7 @@ class BridgeHand < Hand
     sort!
     str = ''
     Suit.gen_all do |suit|
-      str = "#{str}#{suit} "
-      @cards.each { |card| str = "#{str} #{card.rank}" if card.suit == suit }
-      str += "\n"
+      str += suit(suit).inject("#{suit} ") {|s,card| "#{s} #{card.rank}"}+"\n"
     end
     str
   end
