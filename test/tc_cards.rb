@@ -113,7 +113,7 @@ class TcRank < Test::Unit::TestCase
     assert_raise(ArgumentError) { Rank.get(:eleven) }
   end
 
-  def test_get_all
+  def test_gen_all
     Rank.ordering = Rank::ASCEND
     ranks = ''
     Rank.gen_all { |rank| ranks += rank.to_s }
@@ -132,7 +132,7 @@ class TcSuit < Test::Unit::TestCase
     assert_raise(ArgumentError) { Suit.get(:swords) }
   end
 
-  def test_get_all
+  def test_gen_all
     Suit.ordering = Suit::ASCEND
     suits = ''
     Suit.gen_all { |suit| suits += suit.to_s }
@@ -323,13 +323,26 @@ class TcCards < Test::Unit::TestCase
     end
   end
 
-  def top
+  def test_top
     Rank.ordering, Suit.ordering = ORD[0]
     deck = Cards.new
     assert_equal(Card.get(:two, :clubs), deck.top)
-    assert_equal(51, deck.top)
+    assert_equal(51, deck.length)
     assert_equal(Card.get(:three, :clubs), deck.top)
-    assert_equal(50, deck.top)
+    assert_equal(50, deck.length)
+  end
+
+  def test_suit
+    ORD.each do |order|
+      Rank.ordering, Suit.ordering = order
+      deck = Cards.new
+      [:spades,:clubs,:diamonds,:hearts].each do |suit|
+        compare = []
+        Rank.gen_all { |r| compare += [Card.get(r, suit)] }
+        assert_equal(compare, deck.suit(suit))
+        assert_equal(compare, deck.suit(Suit.get(suit)))
+      end
+    end
   end
 end
 
