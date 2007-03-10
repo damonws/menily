@@ -29,9 +29,9 @@ require 'bridge'
 class TcBridgeHand < Test::Unit::TestCase
   def test_sort
     hand = [BridgeHand.new]
-    Cards.new.shuffle.deal(hand)
+    Cards.new.new_deck.shuffle.deal(hand)
     hand[0].sort!
-    Card.gen_all { |card| assert_equal(card, hand[0].top) }
+    Card.to_a.each { |card| assert_equal(card, hand[0].top) }
   end
 
   def test_to_s
@@ -41,7 +41,7 @@ class TcBridgeHand < Test::Unit::TestCase
       "#{Suit::DIAMOND}  A K Q J 10 9 8 7 6 5 4 3 2\n" +
       "#{Suit::CLUB}  A K Q J 10 9 8 7 6 5 4 3 2\n"
     hand = [BridgeHand.new]
-    Cards.new.deal(hand)
+    Cards.new.new_deck.deal(hand)
     assert_equal(all_card_hand, hand.to_s)
   end
 
@@ -66,7 +66,7 @@ class TcBridgeHand < Test::Unit::TestCase
 
   def test_lenp
     hand = [BridgeHand.new]
-    Cards.new.deal(hand)
+    Cards.new.new_deck.deal(hand)
     assert_equal(4*9, hand[0].lenp) # 9 points from each suit for whole deck
 
     north_hand = [ [:ace,   :spades], [:king,  :spades],

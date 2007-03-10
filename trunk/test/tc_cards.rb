@@ -100,7 +100,7 @@ class TcGenericSymbol < Test::Unit::TestCase
     (0...ORD.length).each do |order|
       TestSymbol.ordering = order
       sym_str = ''
-      TestSymbol.gen_all { |sym| sym_str += sym.to_s }
+      TestSymbol.to_a.each { |sym| sym_str += sym.to_s }
       assert_equal(ORD[order], sym_str)
     end
   end
@@ -116,11 +116,11 @@ class TcRank < Test::Unit::TestCase
   def test_gen_all
     Rank.ordering = Rank::ASCEND
     ranks = ''
-    Rank.gen_all { |rank| ranks += rank.to_s }
+    Rank.to_a.each { |rank| ranks += rank.to_s }
     assert_equal('2345678910JQKA', ranks)
     Rank.ordering = Rank::DESCEND
     ranks = ''
-    Rank.gen_all { |rank| ranks += rank.to_s }
+    Rank.to_a.each { |rank| ranks += rank.to_s }
     assert_equal('AKQJ1098765432', ranks)
   end
 end
@@ -135,12 +135,12 @@ class TcSuit < Test::Unit::TestCase
   def test_gen_all
     Suit.ordering = Suit::ASCEND
     suits = ''
-    Suit.gen_all { |suit| suits += suit.to_s }
+    Suit.to_a.each { |suit| suits += suit.to_s }
     assert_equal("#{Suit::CLUB}#{Suit::DIAMOND}#{Suit::HEART}#{Suit::SPADE}",
                  suits)
     Suit.ordering = Suit::BLACKRED
     suits = ''
-    Suit.gen_all { |suit| suits += suit.to_s }
+    Suit.to_a.each { |suit| suits += suit.to_s }
     assert_equal("#{Suit::SPADE}#{Suit::HEART}#{Suit::CLUB}#{Suit::DIAMOND}",
                  suits)
   end
@@ -153,8 +153,8 @@ class TcRankAndSuit < Test::Unit::TestCase
     Suit.ordering = Suit::BLACKRED
     ranks = ''
     suits = ''
-    Rank.gen_all { |rank| ranks += rank.to_s }
-    Suit.gen_all { |suit| suits += suit.to_s }
+    Rank.to_a.each { |rank| ranks += rank.to_s }
+    Suit.to_a.each { |suit| suits += suit.to_s }
     assert_equal('2345678910JQKA', ranks)
     assert_equal("#{Suit::SPADE}#{Suit::HEART}#{Suit::CLUB}#{Suit::DIAMOND}",
                  suits)
@@ -162,8 +162,8 @@ class TcRankAndSuit < Test::Unit::TestCase
     Suit.ordering = Suit::ASCEND
     ranks = ''
     suits = ''
-    Rank.gen_all { |rank| ranks += rank.to_s }
-    Suit.gen_all { |suit| suits += suit.to_s }
+    Rank.to_a.each { |rank| ranks += rank.to_s }
+    Suit.to_a.each { |suit| suits += suit.to_s }
     assert_equal('AKQJ1098765432', ranks)
     assert_equal("#{Suit::CLUB}#{Suit::DIAMOND}#{Suit::HEART}#{Suit::SPADE}",
                  suits)
@@ -237,10 +237,10 @@ class TcCard < Test::Unit::TestCase
     ORD.each_with_index do |order,i|
       Rank.ordering, Suit.ordering = order
       card_str = ''
-      Card.gen_all { |x| card_str += x.to_s }
+      Card.to_a.each { |x| card_str += x.to_s }
       compare_str = ''
-      Suit.gen_all do |suit|
-        Rank.gen_all do |rank|
+      Suit.to_a.each do |suit|
+        Rank.to_a.each do |rank|
           compare_str += rank.to_s + suit.to_s
         end
       end
@@ -249,14 +249,6 @@ class TcCard < Test::Unit::TestCase
   end
 
   def test_to_a
-    ORD.each do |order|
-      Rank.ordering, Suit.ordering = order
-      i = 0
-      Card.gen_all do |card|
-        assert_equal(card, Card.to_a[i])
-        i += 1
-      end
-    end
     assert_equal(52, Card.to_a.length)
   end
 
@@ -286,12 +278,14 @@ class TcCards < Test::Unit::TestCase
 
   def test_to_s
     assert_equal(String, Cards.new.to_s.class)
+    assert_equal(String, Cards.new.new_deck.to_s.class)
   end
 
   def test_instantiate
     ORD.each_with_index do |order,i|
       Rank.ordering, Suit.ordering = order
-      assert_equal(all_card_str(i), Cards.new.to_s)
+      assert_equal('', Cards.new.to_s)
+      assert_equal(all_card_str(i), Cards.new.new_deck.to_s)
       assert_raise(ArgumentError) { Cards.new(:blah) }
     end
   end
@@ -299,7 +293,7 @@ class TcCards < Test::Unit::TestCase
   def test_dup
     ORD.each do |order|
       Rank.ordering, Suit.ordering = order
-      deck1 = Cards.new
+      deck1 = Cards.new.new_deck
       deck2 = deck1.dup
       assert_not_equal(deck1.object_id, deck2.object_id)
       assert_equal(deck1.to_s, deck2.to_s)
@@ -307,13 +301,14 @@ class TcCards < Test::Unit::TestCase
   end
 
   def test_length
-    assert_equal(52, Cards.new.length)
+    assert_equal(0, Cards.new.length)
+    assert_equal(52, Cards.new.new_deck.length)
   end
 
   def test_shuffle
     ORD.each do |order|
       Rank.ordering, Suit.ordering = order
-      deck = Cards.new
+      deck = Cards.new.new_deck
       deck1 = deck.shuffle
       deck2 = deck.shuffle
       deck3 = deck.shuffle
@@ -325,7 +320,7 @@ class TcCards < Test::Unit::TestCase
 
   def test_top
     Rank.ordering, Suit.ordering = ORD[0]
-    deck = Cards.new
+    deck = Cards.new.new_deck
     assert_equal(Card.get(:two, :clubs), deck.top)
     assert_equal(51, deck.length)
     assert_equal(Card.get(:three, :clubs), deck.top)
@@ -335,30 +330,36 @@ class TcCards < Test::Unit::TestCase
   def test_suit
     ORD.each do |order|
       Rank.ordering, Suit.ordering = order
-      deck = Cards.new
+      deck = Cards.new.new_deck
       [:spades,:clubs,:diamonds,:hearts].each do |suit|
-        compare = []
-        Rank.gen_all { |r| compare += [Card.get(r, suit)] }
+        compare = Cards.new
+        Rank.to_a.each { |r| compare.add(Card.get(r, suit)) }
         assert_equal(compare, deck.suit(suit))
         assert_equal(compare, deck.suit(Suit.get(suit)))
       end
     end
   end
+
+  def test_spaceship
+    Rank.ordering, Suit.ordering = ORD[0]
+    deck1 = Cards.new.add(Card.get(:jack, :clubs)).add(Card.get(:two, :spades))
+    deck2 = Cards.new.add(Card.get(:jack, :hearts)).add(Card.get(:two, :spades))
+    assert_operator(deck1, :<, deck2)
+    Rank.ordering, Suit.ordering = ORD[1]
+    assert_operator(deck1, :>, deck2)
+  end
+
+  def test_each
+    deck = Cards.new
+    cards = [Card.get(:jack, :clubs), Card.get(:two, :spades)]
+    cards.each { |card| deck.add(card) }
+    deck.each_with_index { |card,i| assert_equal(cards[i], card) }
+  end
 end
 
 class TcHand < Test::Unit::TestCase
-  def test_instantiate
-    h = Hand.new
-    assert_equal(0, h.length)
-    assert_equal('', h.to_s)
-  end
-
-  def test_to_s
-    assert_equal(String, Hand.new.to_s.class)
-  end
-
   def test_add
-    h = Hand.new.add(Card.get(:jack, :clubs))
+    h = Cards.new.add(Card.get(:jack, :clubs))
     assert_equal(1, h.length)
     assert_equal("J#{Suit::CLUB}", h.to_s)
     h.add(Card.get(:ace, :spades)).add(Card.get(:four, :hearts))
@@ -367,7 +368,7 @@ class TcHand < Test::Unit::TestCase
   end
 
   def test_remove
-    h = Hand.new.add(Card.get(:jack, :clubs)).add(
+    h = Cards.new.add(Card.get(:jack, :clubs)).add(
       Card.get(:ace, :spades)).add(Card.get(:four, :hearts))
     h.remove(Card.get(:ace, :spades))
     assert_equal(2, h.length)
@@ -379,8 +380,8 @@ class TcHand < Test::Unit::TestCase
 
   def test_deal
     hands = []
-    deck = Cards.new
-    3.times { hands <<= Hand.new }
+    deck = Cards.new.new_deck
+    3.times { hands <<= Cards.new }
     deck.deal(hands, 7)
     assert_equal(3, hands.length)
     assert_equal(45, deck.length)
@@ -395,12 +396,12 @@ class TcHand < Test::Unit::TestCase
 
   def test_deal_even
     hands = []
-    deck = Cards.new
-    2.times { hands <<= Hand.new }
+    deck = Cards.new.new_deck
+    2.times { hands <<= Cards.new }
     deck.deal_even(hands, 7)
     assert_equal(45, deck.length)
     [4, 3].each_with_index { |len,i| assert_equal(len, hands[i].length) }
-    hands <<= Hand.new
+    hands <<= Cards.new
     [4, 3, 0].each_with_index { |len,i| assert_equal(len, hands[i].length) }
     deck.deal_even(hands, 2)
     assert_equal(43, deck.length)
@@ -408,7 +409,7 @@ class TcHand < Test::Unit::TestCase
     deck.deal_even(hands, 6)
     assert_equal(37, deck.length)
     [5, 5, 5].each_with_index { |len,i| assert_equal(len, hands[i].length) }
-    hands <<= Hand.new
+    hands <<= Cards.new
     [5, 5, 5, 0].each_with_index { |len,i| assert_equal(len, hands[i].length) }
     deck.deal_even(hands)
     assert_equal(0, deck.length)

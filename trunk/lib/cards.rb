@@ -93,10 +93,8 @@ class GenericSymbol
       new(@symbol_info.index(self.ordered_info[-1]))
     end
 
-    def gen_all
-      (first..last).each do |sym|
-        yield sym
-      end
+    def to_a
+      (first..last).to_a
     end
   end
 
@@ -198,12 +196,6 @@ class Card
       new(Rank.last, Suit.last)
     end
 
-    def gen_all
-      (first..last).each do |card|
-        yield card
-      end
-    end
-
     def to_a
       (first..last).to_a
     end
@@ -237,10 +229,18 @@ class CardsError < StandardError
 end
 
 class Cards
+  include Comparable
+  include Enumerable
+
   attr_accessor :cards
 
   def initialize
+    @cards = []
+  end
+
+  def new_deck
     @cards = Card.to_a
+    self
   end
 
   def dup
@@ -302,14 +302,16 @@ class Cards
   def suit(sym)
     sym = Suit.get(sym) if sym.class == Symbol
     raise ArgumentError("#{sym} is not a suit symbol") unless sym.class == Suit
-    @cards.inject([]) do |s,card|
-      card.suit == sym ? s + [card] : s
+    @cards.inject(self.class.new) do |s,card|
+      card.suit == sym ? s.add(card) : s
     end
   end
-end
 
-class Hand < Cards
-  def initialize
-    @cards = []
+  def <=>(other)
+    @cards <=> other.cards
+  end
+
+  def each
+    @cards.each { |card| yield(card) }
   end
 end

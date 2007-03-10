@@ -25,7 +25,7 @@ require 'cards'
 class BridgeError < StandardError
 end
 
-class BridgeHand < Hand
+class BridgeHand < Cards
   def sort!
     @cards.sort!
   end
@@ -34,36 +34,25 @@ class BridgeHand < Hand
     Rank.ordering = Rank::DESCEND
     Suit.ordering = Suit::DESCEND
     sort!
-    str = ''
-    Suit.gen_all do |suit|
-      str += suit(suit).inject("#{suit} ") {|s,card| "#{s} #{card.rank}"}+"\n"
+    Suit.to_a.inject('') do |str,suit|
+      str + suit(suit).inject("#{suit} ") {|s,card| s + " #{card.rank}"}+"\n"
     end
-    str
   end
 
   def hcp
     @cards.inject(0) do |pts,card|
-      pts += case card.rank
-             when Rank.get(:ace):   4
-             when Rank.get(:king):  3
-             when Rank.get(:queen): 2
-             when Rank.get(:jack):  1
-             else 0
-             end
+      pts + case card.rank
+            when Rank.get(:ace):   4
+            when Rank.get(:king):  3
+            when Rank.get(:queen): 2
+            when Rank.get(:jack):  1
+            else 0
+            end
     end
   end
 
   def lenp
-    points = 0
-    Suit.gen_all do |suit|
-      count = 0
-      @cards.each do |card|
-        if card.suit == suit and (count += 1) > 4
-          points += 1
-        end
-      end
-    end
-    points
+    Suit.to_a.inject(0) { |pts,suit| pts + [0, suit(suit).length - 4].max } 
   end
 end
 
@@ -80,7 +69,7 @@ class BridgeDeal
   def initialize(initial_deal = nil)
     @hands = []
     4.times { @hands <<= BridgeHand.new }
-    deck = Cards.new
+    deck = Cards.new.new_deck
 
     if initial_deal
       raise BridgeError.new("too many hands") if initial_deal.length > 4
