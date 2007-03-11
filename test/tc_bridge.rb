@@ -116,13 +116,31 @@ class TcBridgeDeal < Test::Unit::TestCase
   end
 
   def test_to_s
-    deal_regex = (BridgeDeal::NORTH..BridgeDeal::WEST).inject('') do |s,n|
-      "#{s}#{BridgeDeal::NAME[n]}\n" +
-      "#{Suit::SPADE}.*\n" +
-      "#{Suit::HEART}.*\n" +
-      "#{Suit::DIAMOND}.*\n" +
-      "#{Suit::CLUB}.*\n\n"
-    end.strip
-    10.times { assert_match(/#{deal_regex}/, BridgeDeal.new.to_s) }
+    deal_regex = []
+    (BridgeDeal::NORTH..BridgeDeal::WEST).each_with_index do |n,i|
+      deal_regex <<= ".*#{BridgeDeal::NAME[n]}.*\n" +
+                     ".*#{Suit::SPADE}.*\n" +
+                     ".*#{Suit::HEART}.*\n" +
+                     ".*#{Suit::DIAMOND}.*\n" +
+                     ".*#{Suit::CLUB}.*\n" +
+                     ".*points.*"
+    end
+    10.times do
+      deal = BridgeDeal.new.to_s
+      deal_regex.each { |regex| assert_match(/#{regex}/, deal) }
+    end
+  end
+end
+
+class TcBid < Test::Unit::TestCase
+  def test_validate
+    assert_raise(ArgumentError) { Bid.validate(:sevencuckoos) }
+    assert_equal(:fiveclub, Bid.validate(:fiveclub))
+    assert_equal(:pass, Bid.validate(:pass))
+  end
+
+  def test_to_s
+    assert_equal("1#{Bid::HEART}", Bid.to_s(:oneheart))
+    assert_equal("Double", Bid.to_s(:double))
   end
 end

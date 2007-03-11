@@ -290,7 +290,7 @@ class Cards
   end
 
   def add(card)
-    @cards <<= card
+    @cards << card
     self
   end
 
