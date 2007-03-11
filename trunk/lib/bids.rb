@@ -24,4 +24,21 @@
 require 'cards'
 require 'bridge'
 
-print BridgeDeal.new
+deal = BridgeDeal.new
+turn = rand(4)
+passes = 0
+
+puts deal.to_s + "\n"
+puts((0..3).inject('') { |s,i| s + BridgeDeal::NAME[(turn+i)%4].ljust(8) })
+
+bidding = Bidding.new(deal, turn)
+print bidding.next_bid.ljust(8)
+print bidding.next_bid.ljust(8)
+print bidding.next_bid.ljust(8)
+puts bidding.next_bid.ljust(8)
+
+__END__
+while passes < 3
+  passes += 1
+  turn = (turn+1)%4
+end
