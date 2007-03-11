@@ -171,6 +171,9 @@ class Bid
   end
 end
 
+class BiddingError < StandardError
+end
+
 class Bidder
   def initialize(hand, history)
     @hand = hand
@@ -183,17 +186,82 @@ class Bidder
 
   def bid
     @history << bid = case
+
+        # True opening bids
       when (not bidding_opened? and @hand.points > 12)
         case
-        when @hand.balanced?
-          case @hand.hcp
-          when 15..17: :onenotrump
-          when 20..21: :twonotrump
-          when 25..27: :threenotrump
-          else :pass
-          end
-        else :pass
+          # No Trump
+        when (@hand.balanced? and (25..27).include?(@hand.hcp)): :threenotrump
+        when (@hand.balanced? and (20..21).include?(@hand.hcp)): :twonotrump
+        when (@hand.balanced? and (15..17).include?(@hand.hcp)): :onenotrump
+
+          # Strong 2C
+        when @hand.points > 21: :twoclub
+
+          # 5 Card Major
+        when @hand.suit(:spades).length > 6: :onespade
+        when @hand.suit(:hearts).length > 6: :oneheart
+        when @hand.suit(:spades).length == 6: :onespade
+        when @hand.suit(:hearts).length == 6: :oneheart
+        when @hand.suit(:spades).length == 5: :onespade
+        when @hand.suit(:hearts).length == 5: :oneheart
+
+          # Minor
+        when @hand.suit(:diamonds).length > 6: :onediamond
+        when @hand.suit(:clubs).length > 6: :oneclub
+        when @hand.suit(:diamonds).length == 6: :onediamond
+        when @hand.suit(:clubs).length == 6: :oneclub
+        when @hand.suit(:diamonds).length == 5: :onediamond
+        when @hand.suit(:clubs).length == 5: :oneclub
+        when @hand.suit(:diamonds).length == 4: :onediamond
+        when @hand.suit(:clubs).length == 4: :oneclub
+        when @hand.suit(:clubs).length == 3: :oneclub
+        when @hand.suit(:diamonds).length == 3: :onediamond
+
+          # Should never happen
+        else raise BiddingError.new("opening points, no bid\n#{@hand}")
         end
+
+        # Preemptive opening bids
+      when (not bidding_opened?)
+        len = [ [:spades,   @hand.suit(:spades).length],
+                [:hearts,   @hand.suit(:hearts).length],
+                [:diamonds, @hand.suit(:diamonds).length],
+                [:clubs,    @hand.suit(:clubs).length]     ]
+        # TODO: factor vulnerability
+        # TODO: calculate number of winable tricks instead of 7 card suit
+
+        # 7 Card Preempts
+        case len.select { |l| l[1] > 6 }[0]
+        when :spades:   :threespade
+        when :hearts:   :threeheart
+        when :diamonds: :threediamond
+        when :clubs:    :threeclub
+        else
+
+          # Weak 2 Bids
+          if (5..11).include?(@hand.points)
+            len.pop       # remove 2C
+            sixes = len.select { |l| l[1] == 6 }
+
+            if sixes.length == 0
+              :pass
+            else
+              case sixes.max { |a,b|
+                @hand.suit(a[0]).points <=> @hand.suit(b[0]).points }[0]
+              when :spades:   :twospade
+              when :hearts:   :twoheart
+              when :diamonds: :twodiamond
+              else raise BiddingError.new("weak two error\n#{@hand}")
+              end
+            end
+          else
+            # TODO: what to do in this case?
+            :pass
+          end
+        end
+
+        # TODO: responses, interference, and competitive bidding
       else :pass
       end
 

@@ -26,16 +26,26 @@ require 'bridge'
 
 deal = BridgeDeal.new
 turn = rand(4)
-passes = 0
+passes = -1
 
 puts deal.to_s + "\n"
 puts((0..3).inject('') { |s,i| s + BridgeDeal::NAME[(turn+i)%4].ljust(8) })
 
 bidding = Bidding.new(deal, turn)
-print bidding.next_bid.ljust(8)
-print bidding.next_bid.ljust(8)
-print bidding.next_bid.ljust(8)
-puts bidding.next_bid.ljust(8)
+
+while passes < 3
+  4.times do
+    bid = bidding.next_bid
+    print bid.ljust(8)
+    if bid == "Pass"
+      passes += 1
+      break if passes > 2
+    else
+      passes = 0
+    end
+  end
+  puts
+end
 
 __END__
 while passes < 3
