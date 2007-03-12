@@ -46,9 +46,3 @@ while passes < 3
   end
   puts
 end
-
-__END__
-while passes < 3
-  passes += 1
-  turn = (turn+1)%4
-end

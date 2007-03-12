@@ -93,13 +93,16 @@ class BridgeDeal
     deck = Cards.new.new_deck
 
     if initial_deal
-      raise BridgeError.new("too many hands") if initial_deal.length > 4
+      raise ArgumentError.new("too many hands") if initial_deal.length > 4
       initial_deal.each do |seat,cards|
-        raise BridgeError.new("too many cards for #{seat}") if cards.length > 13
+        raise ArgumentError.new("invalid seat") if not INDEX.include?(seat)
+        raise ArgumentError.new("invalid cards array") if cards.class != Array
+        raise ArgumentError.new("#{seat}: too man cards") if cards.length > 13
         cards.each do |card_arr|
+          raise ArgumentError.new("invalid card") if card_arr.class != Array
           card = Card.get(card_arr[0], card_arr[1])
-          @hands[INDEX[seat]].add(card)
           deck.remove(card)
+          @hands[INDEX[seat]].add(card)
         end
       end
     end
@@ -232,11 +235,15 @@ class Bidder
         # TODO: calculate number of winable tricks instead of 7 card suit
 
         # 7 Card Preempts
-        case len.select { |l| l[1] > 6 }[0]
-        when :spades:   :threespade
-        when :hearts:   :threeheart
-        when :diamonds: :threediamond
-        when :clubs:    :threeclub
+        seven = len.detect { |l| l[1] > 6 }
+        if seven
+          case seven[0]
+          when :spades:   :threespade
+          when :hearts:   :threeheart
+          when :diamonds: :threediamond
+          when :clubs:    :threeclub
+          else raise BiddingError.new("seven cards in non-suit\n#{@hand}")
+          end
         else
 
           # Weak 2 Bids
