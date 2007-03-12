@@ -295,7 +295,7 @@ class Cards
   end
 
   def remove(card)
-    @cards.delete(card)
+    raise ArgumentError.new("Can't remove #{card}") if not @cards.delete(card)
     self
   end
 
