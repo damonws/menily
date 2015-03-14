@@ -1,0 +1,1 @@
+Menily is the Cahuilla lunar deity.  Among other contributions, she taught her people to play games.  The Menily project is an attempt to write a framework for teaching card games.  Menily's first goal is to provide a training system for learning Bridge bidding conventions.
